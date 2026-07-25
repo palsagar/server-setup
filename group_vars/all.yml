@@ -1,0 +1,17 @@
+server_user: sagar
+github_user: palsagar
+
+lazygit_version: "0.63.1"
+eza_version: "0.23.5"
+zoxide_version: "0.10.0"
+yazi_version: "26.5.6"
+fzf_version: "0.74.1"
+neovim_version: "0.12.4"
+uv_version: "0.11.32"
+thefuck_version: "3.32"
+
+omz_commit: b37dd49ca5bf
+p10k_commit: 9253fb1c5034
+autosuggestions_commit: 85919cd1ffa7
+syntax_highlighting_commit: 1d85c692615a
+tpm_commit: e261deb1b476

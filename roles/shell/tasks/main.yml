@@ -1,0 +1,72 @@
+---
+- name: Clone oh-my-zsh
+  git:
+    repo: https://github.com/ohmyzsh/ohmyzsh.git
+    dest: "/home/{{ server_user }}/.oh-my-zsh"
+    version: "{{ omz_commit }}"
+  become: true
+  become_user: "{{ server_user }}"
+
+- name: Clone powerlevel10k theme
+  git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "/home/{{ server_user }}/.oh-my-zsh/custom/themes/powerlevel10k"
+    version: "{{ p10k_commit }}"
+  become: true
+  become_user: "{{ server_user }}"
+
+- name: Clone zsh-autosuggestions
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions.git
+    dest: "/home/{{ server_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    version: "{{ autosuggestions_commit }}"
+  become: true
+  become_user: "{{ server_user }}"
+
+- name: Clone zsh-syntax-highlighting
+  git:
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+    dest: "/home/{{ server_user }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+    version: "{{ syntax_highlighting_commit }}"
+  become: true
+  become_user: "{{ server_user }}"
+
+- name: Install .zshrc
+  copy:
+    src: zshrc
+    dest: "/home/{{ server_user }}/.zshrc"
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0644'
+
+- name: Install .p10k.zsh
+  copy:
+    src: p10k.zsh
+    dest: "/home/{{ server_user }}/.p10k.zsh"
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0644'
+
+- name: Install .tmux.conf
+  copy:
+    src: tmux.conf
+    dest: "/home/{{ server_user }}/.tmux.conf"
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0644'
+
+- name: Clone tpm
+  git:
+    repo: https://github.com/tmux-plugins/tpm.git
+    dest: "/home/{{ server_user }}/.tmux/plugins/tpm"
+    version: "{{ tpm_commit }}"
+  become: true
+  become_user: "{{ server_user }}"
+
+- name: Install tmux plugins (headless)
+  command: "/home/{{ server_user }}/.tmux/plugins/tpm/bin/install_plugins"
+  become: true
+  become_user: "{{ server_user }}"
+  environment:
+    HOME: "/home/{{ server_user }}"
+  changed_when: false

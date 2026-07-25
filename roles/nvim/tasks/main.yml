@@ -1,0 +1,38 @@
+---
+- name: Install neovim binary
+  unarchive:
+    src: "https://github.com/neovim/neovim/releases/download/v{{ neovim_version }}/nvim-linux-{{ nvim_arch_map[ansible_architecture] }}.tar.gz"
+    dest: /opt
+    remote_src: yes
+    creates: "/opt/nvim-linux-{{ nvim_arch_map[ansible_architecture] }}"
+
+- name: Symlink nvim into PATH
+  file:
+    src: "/opt/nvim-linux-{{ nvim_arch_map[ansible_architecture] }}/bin/nvim"
+    dest: /usr/local/bin/nvim
+    state: link
+
+- name: Install vendored nvim config
+  copy:
+    src: nvim/
+    dest: "/home/{{ server_user }}/.config/nvim/"
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    directory_mode: '0755'
+
+- name: Seed lazy-lock.json (Lazy rewrites it on sync; only when absent)
+  copy:
+    src: lazy-lock.json
+    dest: "/home/{{ server_user }}/.config/nvim/lazy-lock.json"
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0644'
+    force: false
+
+- name: Install nvim plugins (headless Lazy sync)
+  command: /usr/local/bin/nvim --headless "+Lazy! sync" +qa
+  become: true
+  become_user: "{{ server_user }}"
+  environment:
+    HOME: "/home/{{ server_user }}"
+  changed_when: false

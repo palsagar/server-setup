@@ -1,0 +1,24 @@
+- hosts: all
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Install python3 on bare images
+      raw: apt-get update -qq && apt-get install -y -qq python3
+      changed_when: false
+    - name: Gather facts
+      setup:
+  roles:
+    - { role: baseline, tags: baseline }
+    - { role: user, tags: user }
+    - { role: docker, tags: docker }
+    - { role: shell, tags: shell }
+    - { role: tools, tags: tools }
+    - { role: nvim, tags: nvim }
+  post_tasks:
+    # Package postinst scripts (docker-ce on ubuntu 24.04) rewrite
+    # /etc/default/locale during install — set it after all apt activity.
+    - name: Set default locale
+      copy:
+        dest: /etc/default/locale
+        content: "LANG=en_US.UTF-8\n"
+        mode: '0644'

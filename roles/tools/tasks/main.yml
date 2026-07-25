@@ -1,0 +1,221 @@
+---
+# Uniform pattern: unarchive into a per-tool staging dir under /tmp, copy the
+# binary into /usr/local/bin, then remove the staging dir. Never unarchive
+# straight into /usr/local/bin — some tarballs carry extra files.
+
+- name: Check which tool binaries are missing
+  stat:
+    path: "{{ item.bin }}"
+  loop:
+    - { dir: lazygit, bin: /usr/local/bin/lazygit }
+    - { dir: eza, bin: /usr/local/bin/eza }
+    - { dir: zoxide, bin: /usr/local/bin/zoxide }
+    - { dir: yazi, bin: /usr/local/bin/yazi }
+    - { dir: fzf, bin: /usr/local/bin/fzf }
+    - { dir: uv, bin: "/home/{{ server_user }}/.local/bin/uv" }
+  register: tool_bins
+
+- name: Create staging dirs for missing tools
+  file:
+    path: "/tmp/{{ item.item.dir }}-staging"
+    state: directory
+    mode: '0755'
+  loop: "{{ tool_bins.results }}"
+  when: not item.stat.exists
+  loop_control:
+    label: "{{ item.item.dir }}"
+
+- name: lazygit — extract to staging
+  unarchive:
+    src: "https://github.com/jesseduffield/lazygit/releases/download/v{{ lazygit_version }}/lazygit_{{ lazygit_version }}_linux_{{ arch_map[ansible_architecture] }}.tar.gz"
+    dest: /tmp/lazygit-staging
+    remote_src: yes
+    creates: /usr/local/bin/lazygit
+  register: lazygit_extract
+
+- name: lazygit — install binary
+  copy:
+    src: /tmp/lazygit-staging/lazygit
+    dest: /usr/local/bin/lazygit
+    remote_src: yes
+    owner: root
+    mode: '0755'
+  when: lazygit_extract is changed
+
+- name: lazygit — clean staging
+  file:
+    path: /tmp/lazygit-staging
+    state: absent
+  when: lazygit_extract is changed
+
+- name: eza — extract to staging
+  unarchive:
+    src: "https://github.com/eza-community/eza/releases/download/v{{ eza_version }}/eza_{{ ansible_architecture }}-unknown-linux-gnu.tar.gz"
+    dest: /tmp/eza-staging
+    remote_src: yes
+    creates: /usr/local/bin/eza
+  register: eza_extract
+
+- name: eza — install binary
+  copy:
+    src: /tmp/eza-staging/eza
+    dest: /usr/local/bin/eza
+    remote_src: yes
+    owner: root
+    mode: '0755'
+  when: eza_extract is changed
+
+- name: eza — clean staging
+  file:
+    path: /tmp/eza-staging
+    state: absent
+  when: eza_extract is changed
+
+- name: zoxide — extract to staging
+  unarchive:
+    src: "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ zoxide_version }}/zoxide-{{ zoxide_version }}-{{ ansible_architecture }}-unknown-linux-musl.tar.gz"
+    dest: /tmp/zoxide-staging
+    remote_src: yes
+    creates: /usr/local/bin/zoxide
+  register: zoxide_extract
+
+- name: zoxide — install binary
+  copy:
+    src: /tmp/zoxide-staging/zoxide
+    dest: /usr/local/bin/zoxide
+    remote_src: yes
+    owner: root
+    mode: '0755'
+  when: zoxide_extract is changed
+
+- name: zoxide — clean staging
+  file:
+    path: /tmp/zoxide-staging
+    state: absent
+  when: zoxide_extract is changed
+
+- name: yazi — extract to staging
+  unarchive:
+    src: "https://github.com/sxyazi/yazi/releases/download/v{{ yazi_version }}/yazi-{{ ansible_architecture }}-unknown-linux-musl.zip"
+    dest: /tmp/yazi-staging
+    remote_src: yes
+    creates: /usr/local/bin/yazi
+  register: yazi_extract
+
+- name: yazi — install binaries (yazi + ya)
+  copy:
+    src: "/tmp/yazi-staging/yazi-{{ ansible_architecture }}-unknown-linux-musl/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    remote_src: yes
+    owner: root
+    mode: '0755'
+  loop:
+    - yazi
+    - ya
+  when: yazi_extract is changed
+
+- name: yazi — clean staging
+  file:
+    path: /tmp/yazi-staging
+    state: absent
+  when: yazi_extract is changed
+
+- name: fzf — extract to staging
+  unarchive:
+    src: "https://github.com/junegunn/fzf/releases/download/v{{ fzf_version }}/fzf-{{ fzf_version }}-linux_{{ fzf_arch_map[ansible_architecture] }}.tar.gz"
+    dest: /tmp/fzf-staging
+    remote_src: yes
+    creates: /usr/local/bin/fzf
+  register: fzf_extract
+
+- name: fzf — install binary
+  copy:
+    src: /tmp/fzf-staging/fzf
+    dest: /usr/local/bin/fzf
+    remote_src: yes
+    owner: root
+    mode: '0755'
+  when: fzf_extract is changed
+
+- name: fzf — clean staging
+  file:
+    path: /tmp/fzf-staging
+    state: absent
+  when: fzf_extract is changed
+
+- name: uv — create user bin dir
+  file:
+    path: "/home/{{ server_user }}/.local/bin"
+    state: directory
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0755'
+
+- name: uv — download and extract to staging
+  unarchive:
+    src: "https://github.com/astral-sh/uv/releases/download/{{ uv_version }}/uv-{{ ansible_architecture }}-unknown-linux-gnu.tar.gz"
+    dest: /tmp/uv-staging
+    remote_src: yes
+    creates: "/home/{{ server_user }}/.local/bin/uv"
+  register: uv_extract
+
+- name: uv — install binaries for user
+  copy:
+    src: "/tmp/uv-staging/uv-{{ ansible_architecture }}-unknown-linux-gnu/{{ item }}"
+    dest: "/home/{{ server_user }}/.local/bin/{{ item }}"
+    remote_src: yes
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0755'
+  loop:
+    - uv
+    - uvx
+  when: uv_extract is changed
+
+- name: uv — clean staging
+  file:
+    path: /tmp/uv-staging
+    state: absent
+  when: uv_extract is changed
+
+- name: uv — install PATH shim sourced by .zshrc
+  copy:
+    dest: "/home/{{ server_user }}/.local/bin/env"
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0644'
+    content: |
+      #!/bin/sh
+      case ":${PATH}:" in
+          *:"$HOME/.local/bin":*)
+              ;;
+          *)
+              export PATH="$HOME/.local/bin:$PATH"
+              ;;
+      esac
+
+- name: thefuck — install via uv tool
+  command: "/home/{{ server_user }}/.local/bin/uv tool install --python 3.11 thefuck=={{ thefuck_version }}"
+  become: true
+  become_user: "{{ server_user }}"
+  environment:
+    HOME: "/home/{{ server_user }}"
+  args:
+    creates: "/home/{{ server_user }}/.local/bin/thefuck"
+
+- name: ipdb — install via uv tool
+  command: "/home/{{ server_user }}/.local/bin/uv tool install ipdb"
+  become: true
+  become_user: "{{ server_user }}"
+  environment:
+    HOME: "/home/{{ server_user }}"
+  args:
+    creates: "/home/{{ server_user }}/.local/bin/ipdb3"
+
+- name: ipdb — expose as ipdb (wheel only ships ipdb3)
+  file:
+    src: "/home/{{ server_user }}/.local/bin/ipdb3"
+    dest: "/home/{{ server_user }}/.local/bin/ipdb"
+    state: link
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
