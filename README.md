@@ -5,8 +5,9 @@ Powerlevel10k, fzf, eza, fd, bat, zoxide, yazi, lazygit, btop, tmux + plugins,
 neovim + my LazyVim config, uv, thefuck, docker-ce) on fresh Debian/Ubuntu VPS
 servers. Design decisions and per-tool install map: [SPEC.md](SPEC.md).
 
-Push-style: the playbook runs from my Mac against the VPS over SSH. The VPS
-needs nothing preinstalled except sshd.
+Push-style: the playbook runs from my Mac against the VPS over SSH as root. The
+VPS needs nothing preinstalled except sshd. No extra user accounts are created —
+everything is installed for root.
 
 ## One-time Mac setup
 
@@ -19,42 +20,39 @@ GNU make (ships with macOS).
 
 ## Setting up a new VPS
 
-1. **Create the VPS** (Debian 12/13 or Ubuntu 22.04/24.04) and make sure you can
-   SSH in as root with a key:
+1. **Create the VPS** (Debian 12/13 or Ubuntu 22.04/24.04), log in as root, and
+   set up key-based SSH — generate a keypair on this Mac and install the public
+   half on the VPS (provider panel or `ssh-copy-id`):
 
    ```sh
-   ssh root@<vps-ip>      # add your key in the provider panel first if needed
+   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519-vps
+   ssh-copy-id -i ~/.ssh/id_ed25519-vps.pub root@<vps-ip>
+   ssh -i ~/.ssh/id_ed25519-vps root@<vps-ip>   # confirm key login works
    ```
 
-2. **Check your GitHub keys.** The playbook creates user `sagar` and seeds its
-   `authorized_keys` from <https://github.com/palsagar.keys>. The public key
-   whose private half you use daily must be listed there — otherwise you'll
-   provision a user you can't log in as. (Extra keys can go in
-   `roles/user/files/keys/*.pub`.)
-
-3. **Provision:**
+2. **Provision**, pointing `KEY` at the private half of that keypair:
 
    ```sh
-   make provision HOST=<vps-ip>
+   make provision HOST=<vps-ip> KEY=~/.ssh/id_ed25519-vps
    ```
 
-   This installs everything and sets `sagar`'s shell to zsh.
+   This installs everything for root and sets root's login shell to zsh.
 
-4. **Log in:**
+3. **Log in:**
 
    ```sh
-   ssh sagar@<vps-ip>
+   ssh -i ~/.ssh/id_ed25519-vps root@<vps-ip>
    ```
 
-5. **Optional:** add machine-specific secrets (API keys etc.) to
+4. **Optional:** add machine-specific secrets (API keys etc.) to
    `~/.zshrc.local` on the server — the deployed `.zshrc` sources it if present.
    Never commit secrets here; this repo is **public**.
 
 ## Re-running / updating an existing server
 
 ```sh
-make provision HOST=<vps-ip>                 # full run (idempotent)
-make converge HOST=<vps-ip> TAGS=tools       # re-run one role only
+make provision HOST=<vps-ip> KEY=~/.ssh/id_ed25519-vps                 # full run (idempotent)
+make converge HOST=<vps-ip> KEY=~/.ssh/id_ed25519-vps TAGS=tools       # re-run one role only
 ```
 
 Bump tool versions in `group_vars/all.yml`, then re-provision.

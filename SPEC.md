@@ -8,12 +8,12 @@ Docker containers before ever touching a real VPS.
 
 | # | Decision | Choice |
 |---|----------|--------|
-| 1 | Scope | Tooling + minimal baseline (apt essentials, admin user). No UFW/fail2ban/SSH hardening. |
+| 1 | Scope | Tooling + minimal baseline (apt essentials). No UFW/fail2ban/SSH hardening. |
 | 2 | Dotfiles source | Vendored into this repo (`roles/*/files/`), fully self-contained. |
 | 3 | Secrets | Zero secrets in repo. Server `.zshrc` sources optional `~/.zshrc.local`. |
 | 4 | Install strategy | Hybrid: apt where good, pinned upstream binaries elsewhere, git clones for OMZ/p10k/plugins. |
 | 5 | Architectures | amd64 + arm64 (arch-mapped release assets; arm64 tests via `docker --platform`). |
-| 6 | User model | Create sudo admin user `sagar`; authorized_keys from `https://github.com/palsagar.keys` + optional local pubkeys. |
+| 6 | User model | No extra user — everything installs for root; root login shell set to zsh. SSH key supplied per run via `make provision KEY=...`; no GitHub key fetch, no authorized_keys management. |
 | 7 | Neovim | Pinned upstream binary + full vendored `~/.config/nvim` (LazyVim, no extras, lazy-lock.json included). |
 | 8 | Python tools | `uv` official installer → `uv tool install thefuck ipdb`. |
 | 9 | Docker | docker-ce + buildx + compose plugins from official repo; user in docker group. Binaries-only test (no daemon in containers). |
@@ -32,12 +32,11 @@ server-setup/
 ├── ansible.cfg               # host_key_checking=accept-new, retry_files off
 ├── inventory.example.ini
 ├── group_vars/
-│   └── all.yml               # server_user, github_user, ALL version pins
+│   └── all.yml               # ALL version pins
 ├── playbook.yml              # pre-task: raw python3 bootstrap; then roles
 ├── roles/
 │   ├── baseline/             # apt update, essentials, locales, tzdata, sudo, ca-certs
-│   ├── user/                 # admin user, ssh keys (github .keys + files/keys/*.pub), NOPASSWD sudo, chsh zsh
-│   ├── shell/                # zsh, OMZ+p10k+plugins (pinned clones), vendored dotfiles, tpm + headless plugin install
+│   ├── shell/                # root shell → zsh; zsh, OMZ+p10k+plugins (pinned clones), vendored dotfiles, tpm + headless plugin install
 │   │   └── files/            # zshrc (pruned fork), p10k.zsh, tmux.conf
 │   ├── tools/                # fzf, eza, fd, bat, zoxide, yazi, lazygit, btop, tmux, uv, thefuck, ipdb
 │   ├── nvim/                 # pinned neovim binary + vendored config + headless `Lazy! sync`
@@ -91,9 +90,9 @@ Remove: LM Studio PATH block, bun exports + completions, `claude-mem` alias,
 1. `docker build` (sshd + sudo + python3 + throwaway key).
 2. `docker run -d` with published SSH port; ephemeral inventory.
 3. Run `playbook.yml` over real SSH as root → exactly the production path.
-4. Run `tests/verify.yml`: every binary on PATH for user `sagar`, `zsh -i -c exit` clean,
+4. Run `tests/verify.yml`: every binary on PATH for root, `zsh -i -c exit` clean,
    `tmux -V`, `nvim --version`, `docker --version` + `docker compose version`,
-   dotfiles present, user shell = `/usr/bin/zsh`, tpm plugins cloned.
+   dotfiles present, root's shell = `/usr/bin/zsh`, tpm plugins cloned.
 5. Re-run playbook → assert `changed=0` (idempotency).
 6. Teardown. `make test-arm` repeats via `--platform linux/arm64` (QEMU, slower).
 

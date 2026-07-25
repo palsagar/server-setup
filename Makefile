@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-# macOS: python forks using SSL crash without this (url lookup → github .keys)
+# macOS: fork-safety workaround for ansible's python workers
 export OBJC_DISABLE_INITIALIZE_FORK_SAFETY := YES
 
 .PHONY: help setup provision converge test test-arm vendor
@@ -12,13 +12,13 @@ setup: ## Install ansible-core via uv
 	uv tool install ansible-core
 	ansible-galaxy collection install ansible.posix
 
-provision: ## Provision a server: make provision HOST=1.2.3.4
-	@[ -n "$(HOST)" ] || { echo "usage: make provision HOST=<ip-or-hostname>"; exit 1; }
-	ansible-playbook -i '$(HOST),' -u root playbook.yml
+provision: ## Provision a server: make provision HOST=1.2.3.4 KEY=~/.ssh/id_ed25519
+	@[ -n "$(HOST)" ] && [ -n "$(KEY)" ] || { echo "usage: make provision HOST=<ip-or-hostname> KEY=<ssh-private-key-file>"; exit 1; }
+	ansible-playbook -i '$(HOST),' -u root --private-key $(KEY) playbook.yml
 
-converge: ## Re-run selected tags: make converge HOST=... TAGS=tools
-	@[ -n "$(HOST)" ] || { echo "usage: make converge HOST=<ip-or-hostname> TAGS=<tags>"; exit 1; }
-	ansible-playbook -i '$(HOST),' -u root playbook.yml --tags '$(TAGS)'
+converge: ## Re-run selected tags: make converge HOST=... KEY=... TAGS=tools
+	@[ -n "$(HOST)" ] && [ -n "$(KEY)" ] || { echo "usage: make converge HOST=<ip-or-hostname> KEY=<ssh-private-key-file> TAGS=<tags>"; exit 1; }
+	ansible-playbook -i '$(HOST),' -u root --private-key $(KEY) playbook.yml --tags '$(TAGS)'
 
 test: ## Run the full container test matrix (amd64)
 	bash bin/test.sh

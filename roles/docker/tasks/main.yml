@@ -41,9 +41,3 @@
     update_cache: true
   environment:
     DEBIAN_FRONTEND: noninteractive
-
-- name: Add user to docker group
-  user:
-    name: "{{ server_user }}"
-    groups: docker
-    append: yes

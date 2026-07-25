@@ -5,37 +5,25 @@
   tasks:
     - name: All tools on PATH via interactive zsh (proves .zshrc loads clean)
       command: zsh -ic 'command -v fzf eza fd bat zoxide yazi lazygit btop tmux uv thefuck ipdb nvim docker'
-      become_user: "{{ server_user }}"
       changed_when: false
       failed_when: path_check.rc != 0
       register: path_check
-      environment:
-        HOME: "/home/{{ server_user }}"
 
     - name: docker compose works
       command: docker compose version
-      become_user: "{{ server_user }}"
       changed_when: false
-      environment:
-        HOME: "/home/{{ server_user }}"
 
     - name: docker buildx works
       command: docker buildx version
-      become_user: "{{ server_user }}"
       changed_when: false
-      environment:
-        HOME: "/home/{{ server_user }}"
 
     - name: nvim starts headless
       command: nvim --headless '+quit'
-      become_user: "{{ server_user }}"
       changed_when: false
-      environment:
-        HOME: "/home/{{ server_user }}"
 
     - name: lazy.nvim installed (Lazy sync ran)
       stat:
-        path: "/home/{{ server_user }}/.local/share/nvim/lazy/lazy.nvim"
+        path: /root/.local/share/nvim/lazy/lazy.nvim
       register: lazy_nvim
       failed_when: not lazy_nvim.stat.exists
 
@@ -43,43 +31,43 @@
       stat:
         path: "{{ item }}"
       loop:
-        - "/home/{{ server_user }}/.zshrc"
-        - "/home/{{ server_user }}/.p10k.zsh"
-        - "/home/{{ server_user }}/.tmux.conf"
-        - "/home/{{ server_user }}/.oh-my-zsh/oh-my-zsh.sh"
-        - "/home/{{ server_user }}/.oh-my-zsh/custom/themes/powerlevel10k"
-        - "/home/{{ server_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
-        - "/home/{{ server_user }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-        - "/home/{{ server_user }}/.tmux/plugins/tpm"
-        - "/home/{{ server_user }}/.tmux/plugins/vim-tmux-navigator"
-        - "/home/{{ server_user }}/.tmux/plugins/tmux-resurrect"
-        - "/home/{{ server_user }}/.tmux/plugins/tmux-continuum"
-        - "/home/{{ server_user }}/.tmux/plugins/tmux-yank"
+        - /root/.zshrc
+        - /root/.p10k.zsh
+        - /root/.tmux.conf
+        - /root/.oh-my-zsh/oh-my-zsh.sh
+        - /root/.oh-my-zsh/custom/themes/powerlevel10k
+        - /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+        - /root/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        - /root/.tmux/plugins/tpm
+        - /root/.tmux/plugins/vim-tmux-navigator
+        - /root/.tmux/plugins/tmux-resurrect
+        - /root/.tmux/plugins/tmux-continuum
+        - /root/.tmux/plugins/tmux-yank
       register: dotfiles
       failed_when: not dotfiles.stat.exists
       loop_control:
         label: "{{ item }}"
 
     - name: User shell is zsh
-      command: "getent passwd {{ server_user }}"
+      command: getent passwd root
       register: passwd_entry
       changed_when: false
       failed_when: "'/usr/bin/zsh' not in passwd_entry.stdout"
 
-    - name: User in docker and sudo groups
-      command: "groups {{ server_user }}"
-      register: user_groups
+    - name: No sagar account exists
+      command: getent passwd sagar
+      register: sagar_check
       changed_when: false
-      failed_when: "'docker' not in user_groups.stdout or 'sudo' not in user_groups.stdout"
+      failed_when: sagar_check.rc == 0
 
     - name: No macOS-only content in deployed .zshrc
-      shell: "grep -cE 'LM Studio|\\.bun|OPENROUTER|claude-mem|homebrew' /home/{{ server_user }}/.zshrc || true"
+      shell: "grep -cE 'LM Studio|\\.bun|OPENROUTER|claude-mem|homebrew' /root/.zshrc || true"
       register: forbidden
       changed_when: false
       failed_when: forbidden.stdout != '0'
 
     - name: .zshrc sources .zshrc.local as final line
-      command: "tail -n1 /home/{{ server_user }}/.zshrc"
+      command: tail -n1 /root/.zshrc
       register: zshrc_last
       changed_when: false
       failed_when: "'source ~/.zshrc.local' not in zshrc_last.stdout"

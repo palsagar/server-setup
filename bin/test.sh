@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# macOS: python forks using SSL crash without this (url lookup → github .keys)
+# macOS: fork-safety workaround for ansible's python workers
 export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 
 DISTROS="debian12 debian13 ubuntu2204 ubuntu2404"

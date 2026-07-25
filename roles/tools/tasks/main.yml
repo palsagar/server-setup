@@ -12,7 +12,7 @@
     - { dir: zoxide, bin: /usr/local/bin/zoxide }
     - { dir: yazi, bin: /usr/local/bin/yazi }
     - { dir: fzf, bin: /usr/local/bin/fzf }
-    - { dir: uv, bin: "/home/{{ server_user }}/.local/bin/uv" }
+    - { dir: uv, bin: /root/.local/bin/uv }
   register: tool_bins
 
 - name: Create staging dirs for missing tools
@@ -145,10 +145,8 @@
 
 - name: uv — create user bin dir
   file:
-    path: "/home/{{ server_user }}/.local/bin"
+    path: /root/.local/bin
     state: directory
-    owner: "{{ server_user }}"
-    group: "{{ server_user }}"
     mode: '0755'
 
 - name: uv — download and extract to staging
@@ -156,16 +154,14 @@
     src: "https://github.com/astral-sh/uv/releases/download/{{ uv_version }}/uv-{{ ansible_architecture }}-unknown-linux-gnu.tar.gz"
     dest: /tmp/uv-staging
     remote_src: yes
-    creates: "/home/{{ server_user }}/.local/bin/uv"
+    creates: /root/.local/bin/uv
   register: uv_extract
 
 - name: uv — install binaries for user
   copy:
     src: "/tmp/uv-staging/uv-{{ ansible_architecture }}-unknown-linux-gnu/{{ item }}"
-    dest: "/home/{{ server_user }}/.local/bin/{{ item }}"
+    dest: "/root/.local/bin/{{ item }}"
     remote_src: yes
-    owner: "{{ server_user }}"
-    group: "{{ server_user }}"
     mode: '0755'
   loop:
     - uv
@@ -180,9 +176,7 @@
 
 - name: uv — install PATH shim sourced by .zshrc
   copy:
-    dest: "/home/{{ server_user }}/.local/bin/env"
-    owner: "{{ server_user }}"
-    group: "{{ server_user }}"
+    dest: /root/.local/bin/env
     mode: '0644'
     content: |
       #!/bin/sh
@@ -195,27 +189,17 @@
       esac
 
 - name: thefuck — install via uv tool
-  command: "/home/{{ server_user }}/.local/bin/uv tool install --python 3.11 thefuck=={{ thefuck_version }}"
-  become: true
-  become_user: "{{ server_user }}"
-  environment:
-    HOME: "/home/{{ server_user }}"
+  command: "/root/.local/bin/uv tool install --python 3.11 thefuck=={{ thefuck_version }}"
   args:
-    creates: "/home/{{ server_user }}/.local/bin/thefuck"
+    creates: /root/.local/bin/thefuck
 
 - name: ipdb — install via uv tool
-  command: "/home/{{ server_user }}/.local/bin/uv tool install ipdb"
-  become: true
-  become_user: "{{ server_user }}"
-  environment:
-    HOME: "/home/{{ server_user }}"
+  command: "/root/.local/bin/uv tool install ipdb"
   args:
-    creates: "/home/{{ server_user }}/.local/bin/ipdb3"
+    creates: /root/.local/bin/ipdb3
 
 - name: ipdb — expose as ipdb (wheel only ships ipdb3)
   file:
-    src: "/home/{{ server_user }}/.local/bin/ipdb3"
-    dest: "/home/{{ server_user }}/.local/bin/ipdb"
+    src: /root/.local/bin/ipdb3
+    dest: /root/.local/bin/ipdb
     state: link
-    owner: "{{ server_user }}"
-    group: "{{ server_user }}"
