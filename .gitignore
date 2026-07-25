@@ -3,4 +3,5 @@ __pycache__/
 tests/keys/*.pub.tmp
 tests/keys/id_ed25519
 inventory.ini
+ansible.log
 .zshrc.local
